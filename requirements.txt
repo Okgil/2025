@@ -4,4 +4,6 @@ streamlit_folium
 txt
 
 treamlit
-
+yfinace
+oandas
+plotly

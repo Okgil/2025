@@ -25,7 +25,7 @@ if stat_file and loc_file:
         loc_df['지하철역'] = loc_df['지하철역'].str.strip()
 
         # ✅ 시간대 열만 추출 ('지하철역', '호선명' 제외)
-        exclude_columns = ['지하철역', '호선명']
+        exclude_columns = ['지하철역', '호선명', '사용월']
         time_columns = [col for col in stat_df.columns if col not in exclude_columns]
 
         if not time_columns:

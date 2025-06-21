@@ -18,25 +18,30 @@ if stat_file and loc_file:
         stat_df = pd.read_csv(stat_file, encoding='cp949')
         loc_df = pd.read_csv(loc_file, encoding='cp949')
 
-        # 🔧 열 이름과 문자열 정리
+        # 🔧 열 이름 정리
         stat_df.columns = stat_df.columns.str.strip()
         loc_df.columns = loc_df.columns.str.strip()
         stat_df['지하철역'] = stat_df['지하철역'].str.strip()
         loc_df['지하철역'] = loc_df['지하철역'].str.strip()
 
-        # ✅ 시간대 열만 추출 ('지하철역', '호선명' 제외)
-        exclude_columns = ['지하철역', '호선명', '사용월']
+        # 시간대 열만 추출
+        exclude_columns = ['지하철역', '호선명']
         time_columns = [col for col in stat_df.columns if col not in exclude_columns]
 
         if not time_columns:
             st.warning("시간대별 하차 인원에 해당하는 열이 없습니다.")
         else:
-            selected_time = st.selectbox("⏰ 시각 선택 (하차 인원)", time_columns)
+            # 시간대 정렬 (선택적으로 정렬)
+            time_columns_sorted = sorted(time_columns)
+
+            # 슬라이더로 시간대 선택
+            idx = st.slider("⏰ 시간대 선택", 0, len(time_columns_sorted) - 1, 0)
+            selected_time = time_columns_sorted[idx]
 
             # 병합
             merged_df = pd.merge(stat_df[['지하철역', selected_time]], loc_df, on="지하철역", how="inner")
 
-            # 숫자 변환 및 전처리
+            # 전처리
             merged_df[selected_time] = pd.to_numeric(merged_df[selected_time], errors='coerce')
             merged_df = merged_df.dropna(subset=['위도', '경도', selected_time])
 

@@ -2,40 +2,53 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-st.set_page_config(page_title="지하철 하차 인원 시각화", layout="wide")
-st.title("🚇 17시-18시 지하철 하차 인원 비교")
+st.set_page_config(page_title="지하철 하차 인원 지도 시각화", layout="wide")
+st.title("🗺️ 지하철 하차 인원 지도 시각화 (17시-18시)")
 
-uploaded_file = st.file_uploader("📂 CSV 파일을 업로드하세요", type=["csv"])
+# 파일 업로드 받기
+st.subheader("① 📂 시간대별 하차 인원 파일 업로드")
+stat_file = st.file_uploader("▶️ '지하철역', '17시-18시 하차인원' 열이 포함된 파일", type=["csv"], key="stat")
 
-if uploaded_file is not None:
+st.subheader("② 📂 지하철역 위치 정보 파일 업로드")
+loc_file = st.file_uploader("▶️ '지하철역', '위도', '경도' 열이 포함된 파일", type=["csv"], key="loc")
+
+if stat_file and loc_file:
     try:
-        # 🔍 인코딩 지정
-        df = pd.read_csv(uploaded_file, encoding='cp949')  # 또는 encoding='euc-kr'
+        # 두 CSV 파일 읽기 (인코딩 자동 감지 또는 cp949)
+        stat_df = pd.read_csv(stat_file, encoding='cp949')
+        loc_df = pd.read_csv(loc_file, encoding='cp949')
 
-        # 필수 열 확인
-        if '지하철역' not in df.columns or '17시-18시 하차인원' not in df.columns:
-            st.error("❌ CSV 파일에 '지하철역' 또는 '17시-18시 하차인원' 열이 없습니다.")
-        else:
-            df['17시-18시 하차인원'] = pd.to_numeric(df['17시-18시 하차인원'], errors='coerce')
-            df = df.dropna(subset=['17시-18시 하차인원'])
-            df_sorted = df.sort_values(by='17시-18시 하차인원', ascending=False)
+        # 병합
+        merged_df = pd.merge(stat_df, loc_df, on="지하철역", how="inner")
 
-            st.subheader("📊 하차 인원 많은 순서대로 보기")
-            fig = px.bar(
-                df_sorted,
-                x='지하철역',
-                y='17시-18시 하차인원',
-                color='17시-18시 하차인원',
-                color_continuous_scale='Blues',
-                title='🚇 지하철역별 17시-18시 하차 인원',
-                labels={'17시-18시 하차인원': '하차 인원'}
-            )
-            fig.update_layout(xaxis_tickangle=-45)
-            st.plotly_chart(fig, use_container_width=True)
+        # 데이터 전처리
+        merged_df['17시-18시 하차인원'] = pd.to_numeric(merged_df['17시-18시 하차인원'], errors='coerce')
+        merged_df = merged_df.dropna(subset=['위도', '경도', '17시-18시 하차인원'])
 
-    except UnicodeDecodeError:
-        st.error("❗ 파일 인코딩 오류: utf-8이 아닌 cp949 (또는 euc-kr)로 저장된 파일일 수 있습니다.")
+        # 시각화
+        st.subheader("📍 하차 인원 지도 시각화")
+        fig = px.scatter_mapbox(
+            merged_df,
+            lat="위도",
+            lon="경도",
+            size="17시-18시 하차인원",
+            color="17시-18시 하차인원",
+            hover_name="지하철역",
+            color_continuous_scale="Viridis",
+            size_max=30,
+            zoom=10,
+            title="📌 17시-18시 지하철 하차 인원 (지도로 보기)"
+        )
+
+        fig.update_layout(
+            mapbox_style="open-street-map",
+            margin={"r": 0, "t": 40, "l": 0, "b": 0}
+        )
+
+        st.plotly_chart(fig, use_container_width=True)
+
     except Exception as e:
-        st.error(f"파일을 처리하는 중 오류 발생: {e}")
+        st.error(f"🚨 오류 발생: {e}")
+
 else:
-    st.info("⬆️ 위에 CSV 파일을 업로드하세요.")
+    st.info("두 개의 파일을 모두 업로드해 주세요.")

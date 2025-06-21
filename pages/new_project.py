@@ -24,38 +24,43 @@ if stat_file and loc_file:
         stat_df['지하철역'] = stat_df['지하철역'].str.strip()
         loc_df['지하철역'] = loc_df['지하철역'].str.strip()
 
-        # 🎯 시간대 열 목록 가져오기 (3번째 열부터)
-        time_columns = stat_df.columns[1:]  # 지하철역 제외한 열만
-        selected_time = st.selectbox("⏰ 시각 선택 (하차 인원)", time_columns)
+        # ✅ 시간대 열만 추출 ('지하철역', '호선명' 제외)
+        exclude_columns = ['지하철역', '호선명']
+        time_columns = [col for col in stat_df.columns if col not in exclude_columns]
 
-        # 병합
-        merged_df = pd.merge(stat_df[['지하철역', selected_time]], loc_df, on="지하철역", how="inner")
+        if not time_columns:
+            st.warning("시간대별 하차 인원에 해당하는 열이 없습니다.")
+        else:
+            selected_time = st.selectbox("⏰ 시각 선택 (하차 인원)", time_columns)
 
-        # 숫자 변환
-        merged_df[selected_time] = pd.to_numeric(merged_df[selected_time], errors='coerce')
-        merged_df = merged_df.dropna(subset=['위도', '경도', selected_time])
+            # 병합
+            merged_df = pd.merge(stat_df[['지하철역', selected_time]], loc_df, on="지하철역", how="inner")
 
-        # 지도 시각화
-        st.subheader(f"📍 선택한 시간대 하차 인원 지도: {selected_time}")
-        fig = px.scatter_mapbox(
-            merged_df,
-            lat="위도",
-            lon="경도",
-            size=selected_time,
-            color=selected_time,
-            hover_name="지하철역",
-            color_continuous_scale="Viridis",
-            size_max=30,
-            zoom=10,
-            title=f"📌 {selected_time} 기준 지하철 하차 인원"
-        )
+            # 숫자 변환 및 전처리
+            merged_df[selected_time] = pd.to_numeric(merged_df[selected_time], errors='coerce')
+            merged_df = merged_df.dropna(subset=['위도', '경도', selected_time])
 
-        fig.update_layout(
-            mapbox_style="open-street-map",
-            margin={"r": 0, "t": 40, "l": 0, "b": 0}
-        )
+            # 지도 시각화
+            st.subheader(f"📍 선택한 시간대 하차 인원 지도: {selected_time}")
+            fig = px.scatter_mapbox(
+                merged_df,
+                lat="위도",
+                lon="경도",
+                size=selected_time,
+                color=selected_time,
+                hover_name="지하철역",
+                color_continuous_scale="Viridis",
+                size_max=30,
+                zoom=10,
+                title=f"📌 {selected_time} 기준 지하철 하차 인원"
+            )
 
-        st.plotly_chart(fig, use_container_width=True)
+            fig.update_layout(
+                mapbox_style="open-street-map",
+                margin={"r": 0, "t": 40, "l": 0, "b": 0}
+            )
+
+            st.plotly_chart(fig, use_container_width=True)
 
     except Exception as e:
         st.error(f"🚨 오류 발생: {e}")

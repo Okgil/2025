@@ -3,7 +3,7 @@ streamlit_folium
 
 txt
 
-treamlit
+streamlit
 yfinace
-oandas
+pandas
 plotly

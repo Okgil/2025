@@ -6,3 +6,4 @@ pandas
 plotly
 pandas
 requests
+matplotlib.pyplot
